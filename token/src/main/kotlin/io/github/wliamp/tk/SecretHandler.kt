@@ -7,8 +7,8 @@ import com.nimbusds.jose.jwk.JWKSet
 import com.nimbusds.jose.jwk.RSAKey
 import com.nimbusds.jose.jwk.source.JWKSource
 import com.nimbusds.jose.proc.SecurityContext
-import org.springframework.scheduling.TaskScheduler
-import java.time.Duration
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.collections.map
 
@@ -16,11 +16,11 @@ fun interface SecretLoader {
     fun loadPrivateJwksJson(): String
 }
 
-class EnvSecretLoader(private val props: Properties) : SecretLoader {
+class EnvSecretLoader(private val envVar: String) : SecretLoader {
     override fun loadPrivateJwksJson(): String =
-        System.getenv(props.envVar)
-            ?: System.getProperty(props.envVar)
-            ?: error("Env var ${props.envVar} not found")
+        System.getenv(envVar)
+            ?: System.getProperty(envVar)
+            ?: error("Env var $envVar not found")
 }
 
 data class PrivateKeySet(
@@ -36,26 +36,33 @@ data class PrivateKeySet(
 
 class KeySetManager(
     private val loader: SecretLoader,
-    props: Properties,
-    private val objectMapper: ObjectMapper,
-    taskScheduler: TaskScheduler
+    private val reloadIntervalSeconds: Long,
+    private val objectMapper: ObjectMapper
 ) {
-    private val cache = AtomicReference<PrivateKeySet>()
+    private val cache = AtomicReference<PrivateKeySet?>(null)
+    private val scheduler = Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "token-reloader").apply { isDaemon = true }
+    }
 
     init {
         reload()
-        taskScheduler.scheduleAtFixedRate(
-            { reload() },
-            Duration.ofSeconds(props.reloadIntervalSeconds)
-        )
+        if (reloadIntervalSeconds > 0) {
+            scheduler.scheduleAtFixedRate(
+                { reload() },
+                reloadIntervalSeconds,
+                reloadIntervalSeconds,
+                TimeUnit.SECONDS
+            )
+        }
     }
 
     fun reload() {
         val json = loader.loadPrivateJwksJson()
         val root = objectMapper.readTree(json)
-        val currentKid = root["currentKid"].asText()
+        val currentKid = root["currentKid"]?.asText()
+            ?: error("Missing currentKid")
         val graceKids = root["graceKids"]?.map { it.asText() }?.toSet() ?: emptySet()
-        val keysNode = root["keys"]
+        val keysNode = root["keys"] ?: error("Missing keys")
         val privateKeys = keysNode.map { k ->
             val map: Map<String, Any> =
                 objectMapper.convertValue(k, object : TypeReference<Map<String, Any>>() {})
@@ -75,4 +82,3 @@ class KeySetManager(
         if (matched.isEmpty()) listOf(ks.active()) else matched
     }
 }
-

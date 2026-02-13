@@ -1,44 +1,84 @@
-# 🔧 Spring Boot Starter Bundle
+# 🔀 Merge Strategy
 
-This repository provides modular Spring Boot starter libraries for building scalable and secure backend services, designed for production-ready integration and extensibility.
+This repository enforces a **linear history** policy (`Merge Commit` and `Squash & Merge` are **disabled**).
 
-## 📁 Starters
+# 🛠 Branch Workflows
 
-- [Reactive Algorithm](./algorithm) – Provides a stateless foundation for implementing and composing core algorithms in a reactive style. Designed to integrate with various data structures, supporting asynchronous processing, extensibility, and reuse across different domains.
-  
-- [Reactive Payment Provider](./provider-payment) – Modular integration layer for connecting with external payment gateways. Supports asynchronous request handling, secure transaction flow, and unified abstraction across multiple providers.
+This repository follows a **simplified GitFlow-inspired** branching model.
 
-- [Reactive Verify Provider](./provider-verify) – Service for verifying third-party authentication and identity providers (e.g., Google, Facebook, phone OTP), ensures secure validation before issuing tokens or granting access.
+## 🏗 Branch Structure
 
-- [Reactive Token](./token) – Provides token generation, validation, and lifecycle management for secure inter-service communication.
-  
-Each module is independently runnable and documented in its own README.md file.
+`main` → Production-ready code. Only receives merges from `dev`. Triggers artifact publishing.
+
+`dev` → Integration branch for new features and bug fixes.
+
+## 🔄 Workflow Summary
+
+### ✨ Feature Development
+
+Create a branch from `dev`.
+Used for new functionality.
+Merge back into `dev`.
+
+Direct merge into main is **not allowed**.
+
+### 🚀 Promotion to Production
+
+When `dev` is stable and validated:
+Create a Pull Request from `dev` → `main`.
+
+After approval and merge:
+Artifact publishing pipeline is triggered.
+
+### 📊 Visual
+
+```mermaid
+gitGraph
+    commit id: "main: init - base build & publishing setup"
+    branch dev
+    checkout dev
+    commit id: "build: setup multi-module structure"
+    commit id: "ci: add artifact publish pipeline (dev -> main)"
+    branch module/auth-core
+    checkout module/auth-core
+    commit id: "feat(auth-core): add domain models"
+    commit id: "feat(auth-core): expose service APIs"
+    commit id: "test(auth-core): add unit tests"
+    checkout dev
+    merge module/auth-core id: "integrate auth-core module (rebase)"
+    branch module/chat-api
+    checkout module/chat-api
+    commit id: "feat(chat-api): add chat usecases"
+    commit id: "feat(chat-api): define repository ports"
+    checkout dev
+    merge module/chat-api id: "integrate chat-api module (rebase)"
+    branch change/versioning-logic
+    checkout change/versioning-logic
+    commit id: "build: refine version calculation per module"
+    checkout dev
+    merge change/versioning-logic id: "integrate versioning changes (rebase)"
+    checkout main
+    merge dev id: "release: publish changed artifacts v0.2.0"
+```
 
 ---
 
-### 🛠 Contribute
+# 🛡 Branch Protection Rules
 
-If you’d like to contribute or share your code, **do not commit directly to 'main'**
+### 🔒 Protected
 
-Please create a new branch using the allowed proper prefixes: **feature/** , **bugfix/** , **hotfix/** , **dev/** , **release/**
+- **Applied** `main`
+- **Restrict** `deletion` | `creation` | `updates`
 
-**⚠️ If you don’t use a proper prefix, your branch might not be protected and could be modified by others**
+### ⚙️ Workflows
 
-Then open a Pull Request (PR) to merge into 'main'
-
-**➡️ All changes will be reviewed before merging, use meaningful branch names and commit messages**
-
----
-
-### ⚖️ License:
-This repository is licensed under the **MIT** License
-
----
-
-### 🧑‍💻 Author:
-[William Phan](https://github.com/phnam2301)
-
----
-
-### 📫 Contact:
-`phnam230197@gmail.com`
+- **Applied** `main` |`dev`
+- **Restrict** `creations` | `deletions` | `force pushes`
+- **Required**
+    - `pull request`
+        - required approvals: 1
+        - dismiss stale approvals when new commits are pushed
+        - conversation resolution before merging
+        - allowed merge: *Rebase & Merge*
+    - `status checks`
+        - up to date before merging
