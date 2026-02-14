@@ -1,9 +1,13 @@
+import java.lang.System.getenv
+
 rootProject.name = "token"
 
-include(
-    "token",
-    "token-reactive",
-    "token-spring-security",
-    "token-reactive-spring-boot-starter",
-    "token-imperative-spring-boot-starter"
+getenv("MODULE")?.takeIf { it.isNotBlank() }?.let {
+    include(it)
+} ?: include(
+    "core",
+    "reactive",
+    "spring-security",
+    "reactive-spring-boot-starter",
+    "imperative-spring-boot-starter"
 )
