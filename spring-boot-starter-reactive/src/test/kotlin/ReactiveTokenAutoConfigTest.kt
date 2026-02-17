@@ -1,19 +1,26 @@
 package io.github.wliamp.kit.token.spring.reactive
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.nimbusds.jose.jwk.RSAKey
+import com.nimbusds.jose.jwk.RSAKey.*
+import io.github.wliamp.kit.token.core.KeySetManager
+import io.github.wliamp.kit.token.core.SecretLoader
+import io.github.wliamp.kit.token.reactive.TokenUtil
+import io.github.wliamp.kit.token.spring.reactive.RSAKeyGenerator.generate
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.getBean
+import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.security.oauth2.jwt.JwtEncoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
-import java.security.KeyPairGenerator
+import java.lang.System.*
+import java.security.KeyPairGenerator.*
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import kotlin.test.assertNotNull
 
 class ReactiveTokenAutoConfigTest {
 
-    private fun baseContextRunner() = ApplicationContextRunner
+    private fun baseContextRunner() = ApplicationContextRunner()
         .withUserConfiguration(ReactiveTokenAutoConfig::class.java)
         .withInitializer {
             it.beanFactory.registerSingleton("objectMapper", ObjectMapper())
@@ -21,19 +28,19 @@ class ReactiveTokenAutoConfigTest {
 
     @BeforeEach
     fun clearEnv() {
-        System.clearProperty("STARTER_TOKEN_PRIVATE_JWKS_JSON")
-        System.clearProperty("MY_ENV")
+        clearProperty("STARTER_TOKEN_PRIVATE_JWKS_JSON")
+        clearProperty("MY_ENV")
     }
 
     @Test
     fun `should create beans with default env var`() {
-        System.setProperty(
+        setProperty(
             "STARTER_TOKEN_PRIVATE_JWKS_JSON",
             """
             {
               "currentKid": "k1",
               "graceKids": [],
-              "keys": [${RSAKeyGenerator.generate()}]
+              "keys": [${generate()}]
             }
             """.trimIndent()
         )
@@ -44,24 +51,24 @@ class ReactiveTokenAutoConfigTest {
                 "token.env-var=STARTER_TOKEN_PRIVATE_JWKS_JSON"
             )
             .run {
-                assertNotNull(it.getBean(ReactiveTokenProps::class.java))
-                assertNotNull(it.getBean(SecretLoader::class.java))
-                assertNotNull(it.getBean(KeySetManager::class.java))
-                assertNotNull(it.getBean(JwtEncoder::class.java))
-                assertNotNull(it.getBean(ReactiveJwtDecoder::class.java))
-                assertNotNull(it.getBean(TokenUtil::class.java))
+                assertNotNull(it.getBean<ReactiveTokenProps>())
+                assertNotNull(it.getBean<SecretLoader>())
+                assertNotNull(it.getBean<KeySetManager>())
+                assertNotNull(it.getBean<JwtEncoder>())
+                assertNotNull(it.getBean<ReactiveJwtDecoder>())
+                assertNotNull(it.getBean<TokenUtil>())
             }
     }
 
     @Test
     fun `should create beans with custom env var`() {
-        System.setProperty(
+        setProperty(
             "MY_ENV",
             """
             {
               "currentKid": "k1",
               "graceKids": [],
-              "keys": [${RSAKeyGenerator.generate()}]
+              "keys": [${generate()}]
             }
             """.trimIndent()
         )
@@ -73,12 +80,12 @@ class ReactiveTokenAutoConfigTest {
                 "token.issuer=http://custom-issuer"
             )
             .run {
-                assertNotNull(it.getBean(ReactiveTokenProps::class.java))
-                assertNotNull(it.getBean(SecretLoader::class.java))
-                assertNotNull(it.getBean(KeySetManager::class.java))
-                assertNotNull(it.getBean(JwtEncoder::class.java))
-                assertNotNull(it.getBean(ReactiveJwtDecoder::class.java))
-                assertNotNull(it.getBean(TokenUtil::class.java))
+                assertNotNull(it.getBean<ReactiveTokenProps>())
+                assertNotNull(it.getBean<SecretLoader>())
+                assertNotNull(it.getBean<KeySetManager>())
+                assertNotNull(it.getBean<JwtEncoder>())
+                assertNotNull(it.getBean<ReactiveJwtDecoder>())
+                assertNotNull(it.getBean<TokenUtil>())
             }
     }
 }
@@ -86,10 +93,10 @@ class ReactiveTokenAutoConfigTest {
 object RSAKeyGenerator {
     fun generate(): String =
         run {
-            val gen = KeyPairGenerator.getInstance("RSA")
+            val gen = getInstance("RSA")
             gen.initialize(2048)
             val keyPair = gen.generateKeyPair()
-            val rsaKey = RSAKey.Builder(keyPair.public as RSAPublicKey)
+            val rsaKey = Builder(keyPair.public as RSAPublicKey)
                 .privateKey(keyPair.private as RSAPrivateKey)
                 .keyID("k1")
                 .build()

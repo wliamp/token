@@ -1,10 +1,11 @@
 package io.github.wliamp.kit.token.spring.reactive
 
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.getBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
+import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.text.get
 
 class PropsBindingTest {
     private val contextRunner = ApplicationContextRunner()
@@ -16,7 +17,7 @@ class PropsBindingTest {
     @Test
     fun `should bind default values when no config`() {
         contextRunner.run { ctx ->
-            val props = ctx.getBean(ReactiveTokenProps::class.java)
+            val props = ctx.getBean<ReactiveTokenProps>()
             assertEquals("ENV", props.backend)
             assertEquals("STARTER_TOKEN_PRIVATE_JWKS_JSON", props.envVar)
             assertEquals(300, props.reloadIntervalSeconds)
@@ -40,7 +41,7 @@ class PropsBindingTest {
                 "token.default-claims.role=admin"
             )
             .run { ctx ->
-                val props = ctx.getBean(ReactiveTokenProps::class.java)
+                val props = ctx.getBean<ReactiveTokenProps>()
                 assertEquals("FILE", props.backend)
                 assertEquals("CUSTOM_ENV", props.envVar)
                 assertEquals(120, props.reloadIntervalSeconds)
